@@ -4,6 +4,7 @@
 library(readxl)
 library(janitor)
 library(skimr)
+library(dplyr)
 library(ggplot2)
 library(tidyverse)
 
@@ -151,7 +152,7 @@ user_sessions_country <- user_sessions %>%
 
 
 
-Country_graph <- ggplot(user_sessions_country, aes(x = country, y = freq)) 
+Country_graph <- ggplot(user_sessions_country, aes(x = reorder(country, -freq), y = freq)) 
 Country_graph + geom_bar(stat = "identity") + labs(x = "Country", y = "Sessions") + theme(axis.text.x = element_text(size = 14, angle = 90, hjust = 1), 
                                                                             axis.text.y = element_text(size = 16),
                                                                             axis.title.x = element_text(size = 14),
@@ -172,6 +173,38 @@ users_device <- unique(users_device)
 
 
 #join user country with user payment
+purchase_country <- left_join(purchase_peruser, users_country, by = "user_id_hash")
+
+purchase_country <- purchase_country %>%
+                        arrange(desc(total_purchase)) 
+
+#see top countries with the most purchase
+purchase_country2 <- purchase_country%>%
+        group_by(country) %>%
+        summarize(total = sum(total_purchase)) %>%
+        arrange(desc(total)) %>%
+        filter(total >= 300)
+
+
+#plot top countries with the most purchases
+Country_graph2 <- ggplot(purchase_country2, aes(x = reorder(country, -total), y = total)) 
+Country_graph2 + geom_bar(stat = "identity") + labs(x = "Country", y = "Purchase $") + theme(axis.text.x = element_text(size = 14, angle = 90, hjust = 1), 
+                                                                                          axis.text.y = element_text(size = 16),
+                                                                                          axis.title.x = element_text(size = 14),
+                                                                                          axis.title.y = element_text(size = 16)) 
+
+#join user device with user payment
+purchase_device <- left_join(purchase_peruser, users_device, by = "user_id_hash")
+
+#substring to differentiate iphone and ipad
+purchase_device$device_type = substr(purchase_device$device_type,1,4)
+
+#group by device
+#hard to tell transaction by iphone or ipad -- there is overlap
+purchase_device2 <- purchase_device%>%
+  group_by(device_type) %>%
+  summarize(total = sum(total_purchase)) 
+
 
 
 
